@@ -1,18 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 type Option int
 
 const (
 	None Option = iota
-	Count
+	Bytes
+	Lines
 )
 
 var (
@@ -29,29 +30,33 @@ func main() {
 
 	if err != nil {
 		fmt.Printf("\nerror: %v\n", err)
-		os.Exit(2)
+		os.Exit(1)
 	}
 }
 
 func getParams() (Option, string, error) {
-	filename := flag.String("c", "", "-c <filename>")
+	fileToBytes := flag.String("c", "", "-c <filename>")
+	fileToLines := flag.String("l", "", "-l <filename>")
 
 	flag.Parse()
 
-	if len(*filename) != 0 {
-		return Count, *filename, nil
+	if len(*fileToBytes) != 0 {
+		return Bytes, *fileToBytes, nil
 	}
 
-	fmt.Println(strings.Join(os.Args, " "))
-	fmt.Println("The correct use is `ccwc -c <filename>`.")
+	if len(*fileToLines) != 0 {
+		return Lines, *fileToLines, nil
+	}
 
 	return None, "", nil
 }
 
 func runOption(opt Option, filename string) error {
 	switch opt {
-	case Count:
+	case Bytes:
 		return countBytes(filename)
+	case Lines:
+		return countLines(filename)
 	default:
 		return ErrNoOption
 	}
@@ -79,5 +84,24 @@ func countBytes(filename string) error {
 	*/
 
 	fmt.Printf("%v\t%s\n", size, filename)
+	return nil
+}
+
+func countLines(filename string) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+
+	s := bufio.NewScanner(f)
+
+	s.Split(bufio.ScanLines)
+
+	lines := 0
+	for s.Scan() {
+		lines += 1
+	}
+
+	fmt.Printf("%v\t%s\n", lines, filename)
 	return nil
 }
